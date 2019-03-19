@@ -1,10 +1,10 @@
-const setStatus = module.exports = (newStatus = 'idle', ...args) => {
-  console.log(newStatus, ...args);
+const setStatus = module.exports = (newStatus = 'idle', options) => {
+  console.log(newStatus, options);
   if (!Statuses[newStatus]) throw new Error(`Invaluid command: ${newStatus}, availabel: ${Object.keys(Statuses)}`)
 
   function killCallback() {
     statusname = newStatus
-    status = new Statuses[newStatus](...args)
+    status = new Statuses[newStatus](options)
   }
 
   //if it needs to stop immediatly, it stops, else a movement can delay or refusing to die

@@ -14,22 +14,26 @@ app.get('/favicon.ico', (req, res) => {
   res.sendFile(path.join(__dirname, 'public/favicon.ico'))
 })
 
-//set raspy route
-app.get('/raspy', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public/raspy.html'));
-})
+createPage('raspy')
+createPage('sliders')
 
-io.of('/raspy').on('connect', socket => {
-  console.log('Raspy connected!');
-
-  socket.on('command', (command, ...options) => {
-    fritz(command, ...options)
+function createPage(name) {
+  app.get(`/${name}`, (req, res) => {
+    res.sendFile(path.join(__dirname, `public/${name}.html`));
   })
 
-  socket.on('disconnect', () => {
-    console.log('Raspy disconnected!!!');
+  io.of(`/${name}`).on('connection', socket => {
+    console.log(`New connection with a ${name} socket established`);
+
+    socket.on('command', ({command, ...options}) => {
+      fritz(command, options)
+    })
+
+    socket.on('disconnect', () => {
+      console.log(`Connection with a ${name} socket closed`);
+    })
   })
-})
+}
 
 //set remote page
 app.get('/', (req, res) => {
