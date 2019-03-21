@@ -1,4 +1,4 @@
-const setStatus = module.exports = (newStatus = 'idle', options) => {
+function setStatus(newStatus = 'idle', options) {
   console.log(newStatus, options);
   if (!Statuses[newStatus]) throw new Error(`Invaluid command: ${newStatus}, availabel: ${Object.keys(Statuses)}`)
 
@@ -26,3 +26,8 @@ function update() {
 }
 
 setInterval(update, updateSpeed)
+
+module.exports = {
+  fritz: setStatus,
+  getMatrix: Statuses.getMatrix
+}
