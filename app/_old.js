@@ -1,9 +1,12 @@
+const {NODE_ENV} = process.env
+
 //connect with raspberry
 const legsName = ['l1', 'l2', 'l3', 'r1', 'r2', 'r3'], bonesName = ['coxa', 'femur', 'tibia'], servosName = [], servos = []
-const Gpio = require('pigpio').Gpio
+let Gpio
+if (NODE_ENV == 'production') Gpio = require('pigpio').Gpio
 
 const pins = [
-  [21, 0, 0], // l1
+  [20, 0, 0], // l1
   [0, 0, 0], // l2
   [0, 0, 0], // l3
   [0, 0, 0], // r1
@@ -23,8 +26,11 @@ const basePWM = [
 pins.forEach((leg, i) => {
   servos[legsName[i]] = {}, servos[i] = []
   leg.forEach((pin, j) => {
-    if (pin) servosName[legsName[i]][bonesName[j]] = servos[i][j] = new Gpio(pin, {mode: Gpio.OUTPUT})
-    else servos[i][j] = {servoWrite: () => {}}
+    if (NODE_ENV == 'production' && pin) {
+      servos[legsName[i]][bonesName[j]] = servos[i][j] = new Gpio(pin, {mode: Gpio.OUTPUT})
+    } else {
+      servos[i][j] = {servoWrite: () => {}}
+    }
   })
 })
 
