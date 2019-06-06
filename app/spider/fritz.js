@@ -18,7 +18,7 @@ function setStatus(newStatus = 'idle', options) {
 const Statuses = require('./Spider.js')
 const updateSpeed = 100
 let status, statusname
-setStatus('idle')
+// setStatus('idle')
 
 //main function
 function update() {
@@ -27,7 +27,7 @@ function update() {
   if (status.tick > status.lifeTime) setStatus('idle')
 }
 
-setInterval(update, updateSpeed)
+// setInterval(update, updateSpeed)
 
 module.exports = {
   command: setStatus,

@@ -38,10 +38,10 @@ setRoute('sliders', socket => {
   sliders.delete(socket)
 })
 
-setInterval(() => {
-  const matrix = fritz.getMatrix()
-  sliders.forEach(socket => socket.emit('new-sliders', matrix))
-}, 1000 / 30)
+// setInterval(() => {
+//   const matrix = fritz.getMatrix()
+//   sliders.forEach(socket => socket.emit('new-sliders', matrix))
+// }, 1000 / 30)
 
 //set remote page
 app.get('/', (req, res) => res.redirect('/remote'))
