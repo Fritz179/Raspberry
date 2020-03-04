@@ -2,7 +2,10 @@
 const {sin, cos, tan, sqrt, asin, acos, atan, sign, PI} = Math
 
 class Leg {
-  constructor(x, y, coxa, femur, tibia) {
+  constructor(opt, flipped) {
+    const x = opt.baseX, y = opt.baseY
+
+    // unbetätigt values
     this.baseX = x
     this.baseY = y
     this.baseL = sqrt(x * x + y * y)
@@ -10,20 +13,29 @@ class Leg {
     this.pitch = 0
     this.yaw = 0
 
-    this.coxa = getServo(coxa)
-    this.femur = getServo(femur)
-    this.tibia = getServo(tibia)
-    this.coxaL = 0
-    this.femurL = 10
-    this.tibiaL = 10
+    // save servo data
+    this.coxa = getServo(opt.coxaPin, opt.deltaCoxaA)
+    this.femur = getServo(opt.femurPin, opt.deltaFemurA)
+    this.tibia = getServo(opt.tibiaPin, opt.deltaTibiaA)
+    this.coxaX = opt.coxaX
+    this.coxaZ = opt.coxaZ
+    this.coxaL = sqrt(opt.coxaX * opt.coxaX + opt.coxaZ * opt.coxaZ)
+    this.femurL = opt.femurL
+    this.tibiaL = opt.tibiaL
 
+    // reference to effective offset of startin position
     this.deltaX = 0
     this.deltaY = 0
     this.deltaZ = 0
 
+    /* save current goal, used if
+       only the reference point is updated */
     this.goalX = 10
     this.goalY = 0
     this.goalZ = 10
+
+    // left legs are flipped in roll (wip)
+    this.sign = flipped ? -1 : 1
 
     this.updateRefPoint(0, 0, 0)
   }
@@ -31,25 +43,36 @@ class Leg {
   updateRefPoint(roll, pitch, yaw) {
     const {baseX, baseY} = this
 
+    // save position for getState of Spider
     this.roll = roll
     this.pitch = pitch
     this.yaw = yaw
 
-    //roll
+    // outupt values, defaulted for yaw
+    let x = this.baseX, y = this.baseY, z = 0
+
+    // problemone: 1. ordine, 2. realtivo o assoluto?
+    // lösig 5: sa l'ordine le giüst le assoluto (rpy) (realtif le miga svasu da assoluto?)
+    //          invece sa le miga urdinu, le relatif noma sa qui
+    //          prima glien dopu in dal urdan giüst
+
+    // Euler's angles, quaternions https://eater.net/quaternions/video/intro
+
+    // roll
     const rollL = cosLaw(baseX, baseX, roll) * sign(roll)
     const rollA = PI / 2 - (PI - roll) / 2
-    let x = baseX - sin(rollA) * rollL
-    let z = -cos(rollA) * rollL
+    x -= sin(rollA) * rollL
+    z += cos(rollA) * rollL
 
-    //pitch
-    const baseLX = sqrt(baseY * baseY + z * z)
-    const pitchL = cosLaw(baseLX, baseLX, pitch) * sign(pitch)
+    // pitch
+    const pitchL = cosLaw(baseY, baseY, pitch) * sign(pitch)
     const pitchA = PI / 2 - (PI - pitch) / 2 + atan(z / baseY)
-    let y = baseY - sin(pitchA) * pitchL
+    y -= sin(pitchA) * pitchL
     z += cos(pitchA) * pitchL
 
-    //yaw
-    const baseLZ = sqrt(x * x + y * y)
+    // yaw, if not used, output variable can all be defualtet to 0
+    // const baseLZ = sqrt(x * x + y * y)
+    const baseLZ = sqrt(baseX * baseX + baseY * baseY)
     const yawL = cosLaw(baseLZ, baseLZ, yaw) * sign(yaw)
     const yawA = PI / 2 - (PI - yaw ) / 2 + atan(y / x)
     x -= sin(yawA) * yawL
@@ -57,30 +80,40 @@ class Leg {
 
     this.deltaX = this.baseX - x
     this.deltaY = this.baseY - y
-    this.deltaZ = -z
+    this.deltaZ = z
 
     this.moveTo(this.goalX, this.goalY, this.goalZ)
   }
 
   moveTo(x, y, z) {
-    const {coxaL, femurL, tibiaL} = this
+    const {coxaL, femurL, tibiaL, toeL} = this
 
+    // update new position for updateRefPoint
     this.goalX = x
     this.goalY = y
     this.goalZ = z
     x -= this.deltaX
     y -= this.deltaY
     z -= this.deltaZ
-    console.log(this.deltaX, this.deltaY, this.deltaZ);
 
+    // adjust for deltaToeL
+    const coxaB = atan(y / x)
+    x -= sin(coxaB) * toeL
+    y += cos(coxaB) * toeL
+
+    // get new values
     const coxaA = atan(y / x)
-    const r = sqrt(x * x + y * y) - coxaL //from coxa to toe
-    const l = sqrt(z * z + r * r)
-    console.log(x, y, z);
-    console.log(`femur: ${femurL}, tibia: ${tibiaL}, hypo: ${l}, coxaL: ${coxaL}`);
+    const l = sqrt(x * x + y * y) - coxaL // from coxa to toe
 
     const femurA = acos((femurL * femurL + l * l - tibiaL * tibiaL) / (2 * femurL * l)) //- atan(z / l)
     const tibiaA = acos((femurL * femurL + tibiaL * tibiaL - l * l) / (2 * femurL * tibiaL))
+
+    // adjust femur for height?
+    femurA += asin(z / l) //??? mago ago dove es?
+    // gal bisöin da cambia al sign sa le a sinistra?
+    // parchi l le negativa?
+    // parchi al servo le giru da l'altra?
+    // o tüc doi quindi i sa cancelan a vicenda?
 
     this.coxa(coxaA)
     this.femur(femurA)
@@ -89,6 +122,8 @@ class Leg {
 }
 
 function cosLaw(a, b, gamma) {
+  // al da esa mudificu par a o b negatif?
+  // angul cun lati negatif? tüc doi negatif?
   return sqrt(a * a + b * b - 2 * a * b * cos(gamma))
 }
 
@@ -97,15 +132,3 @@ function cosLawAngle(a, b, c) {
 }
 
 module.exports = Leg
-
-function getServo(pin) {
-  // const servo = new Gpio(pin, {mode: Gpio.OUTPUT})
-
-  return angle => {
-    const pwm = angle / (PI * 2) * 2000 + 500
-    console.log(pwm);
-
-    if (pwm < 500 || pwm > 2500) console.log(`Invalid PWM: ${pwm}`);
-    // else servo.servoWrite((angle * 2000 + 500) / (PI * 3))
-  }
-}

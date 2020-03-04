@@ -1,27 +1,25 @@
 const Leg = require('./Leg.js')
-
-const {sin, cos, tan, sqrt, asin, acos, atan, PI} = Math
+const values = require('./values.json')
 
 class Spider {
   constructor() {
-    this.legsName = ['l1', 'l2', 'l3', 'r1', 'r2', 'r3']
+    this.legsName = ['r1', 'r2', 'r3', 'l1', 'l2', 'l3']
 
-    //new Leg(deltaX, deltaY, coxaPin, femurPin, tibiaPin)
-    this.l1 = new Leg(10, 5)
-    // this.l2 = new Leg()
-    // this.l3 = new Leg()
-    // this.r1 = new Leg()
-    // this.r2 = new Leg()
-    // this.r3 = new Leg()
+    this.legsName.forEach((name, i) => {
+      this[name] = new Leg(values[name], i > 2)
+    })
   }
 
   getState() {
-    const state = {tilt: {
-      x: this.pitch,
-      y: this.roll,
-      z: this.yaw
-    }, legs: {}}
+    const state = {
+      tilt: {
+        x: this.pitch,
+        y: this.roll,
+        z: this.yaw
+      }
+    }
 
+    state.legs = {}
     this.legsName.forEach(name => {
       state.legs[name] = {
         x: this[name].goalX,
@@ -33,7 +31,7 @@ class Spider {
 
   update() {
     this.legsName.forEach(name => {
-
+      this[name].update()
     })
   }
 
@@ -46,18 +44,12 @@ class Spider {
       this[name].updateRefPoint(roll, pitch, yaw)
     })
   }
-}
 
-class SpiderHandler {
-  constructor() {
-    this.spider = new Spider()
-  }
-
-  onKey(input) {
-
+  setPosition(legs) {
+    Object.keys(legs).forEach(name => {
+      this[name].setPosition(legs[name])
+    })
   }
 }
 
-const handler = new SpiderHandler()
-
-module.exports = handler
+module.exports = Spider
